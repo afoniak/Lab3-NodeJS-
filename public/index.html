@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Список замовлень Піцерії</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+
+<body>
+    <h2>Список замовлень Піцерії</h2>
+    <div class="form">
+    <form name="orderForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group">
+            <label for="pizza_name">Назва Піци:</label>
+            <input class="form-control" name="pizza_name" />
+        </div>
+        <div class="form-group">
+            <label for="client_name">Ім'я клієнта:</label>
+            <input class="form-control" name="client_name" />
+        </div>
+        <div class="form-group">
+            <label for="date_order_end">Дата закінчення замовлення:</label>
+            <input type="date" class="form-control" name="date_order_end" />
+        </div>
+        <div class="form-group">
+            <label for="sum">Сума:</label>
+            <input type="number" class="form-control" name="sum" />
+        </div>
+        <div class="panel-body">
+            <button type="submit" class="btn btn-sm btn-primary">Зберегти</button>
+            <a id="reset" class="btn btn-sm btn-primary">Скинути</a>
+        </div>
+    </form>
+</div>
+    <br>
+    <table class="table table-condensed table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Назва Піци</th>
+                <th>Ім'я клієнта</th>
+                <th>Дата закінчення замовлення</th>
+                <th>Сума</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+
+    <script>
+        async function GetOrders() {
+            const response = await fetch("/api/orders", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const orders = await response.json();
+                let table = document.querySelectorAll("table tbody tr");
+                console.log(table);
+                if (table != null) {
+                    table.forEach(table => table.remove());
+                }
+                let rows = document.querySelector("tbody");
+                orders.forEach(order => {
+                    console.log(order);
+                    rows.append(row(order));
+                });
+            }
+        }
+
+
+        async function GetOrder(id) {
+            const response = await fetch("/api/orders/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const order = await response.json();
+                const form = document.forms["orderForm"];
+                form.elements["id"].value = order._id;
+                form.elements["pizza_name"].value = order.pizza_name;
+                form.elements["client_name"].value = order.client_name;
+                form.elements["date_order_end"].value = order.date_order_end.split('T')[0];
+                form.elements["sum"].value = order.sum;
+            }
+        }
+
+
+        async function CreateOrder(PizzaName, ClientName, DateEndOrder, Sum) {
+            const response = await fetch("/api/orders", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    pizza_name: PizzaName,
+                    client_name: ClientName,
+                    date_order_end: DateEndOrder,
+                    sum: Sum
+                })
+            });
+            if (response.ok === true) {
+                await GetOrders();
+                reset();
+            }
+        }
+
+
+        async function EditOrder(orderId, PizzaName, ClientName, DateEndOrder, Sum) {
+            const response = await fetch("/api/orders", {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: orderId,
+                    pizza_name: PizzaName,
+                    client_name: ClientName,
+                    date_order_end: DateEndOrder,
+                    sum: Sum
+                })
+            });
+            if (response.ok === true) {
+                await GetOrders();
+                reset();
+            }
+        }
+
+
+        async function DeleteOrder(id) {
+            const response = await fetch("/api/orders/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                await GetOrders();
+            }
+        }
+
+
+        function reset() {
+            const form = document.forms["orderForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+
+
+        function row(order) {
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", order._id);
+
+
+            const idTd = document.createElement("td");
+            idTd.append(order._id);
+            tr.append(idTd);
+
+
+            const pizza_nameTd = document.createElement("td");
+            pizza_nameTd.append(order.pizza_name);
+            tr.append(pizza_nameTd);
+
+
+            const client_nameTd = document.createElement("td");
+            client_nameTd.append(order.client_name);
+            tr.append(client_nameTd);
+
+
+            const date_order_endTd = document.createElement("td");
+            date_order_endTd.append(order.date_order_end.split('T')[0]);
+            tr.append(date_order_endTd);
+
+
+            const sumTd = document.createElement("td");
+            sumTd.append(order.sum);
+            tr.append(sumTd);
+
+
+            const linksTd = document.createElement("td");
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", order._id);
+            editLink.append("Редагувати");
+            editLink.addEventListener("click", e => {
+                e.preventDefault();
+                GetOrder(order._id);
+            });
+            linksTd.append(editLink);
+
+
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", order._id);
+            removeLink.append("Видалити");
+            removeLink.addEventListener("click", e => {
+                e.preventDefault();
+                DeleteOrder(order._id);
+            });
+
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+
+            return tr;
+        }
+
+
+        document.getElementById("reset").addEventListener("click", function (e) {
+            e.preventDefault();
+            reset();
+        });
+
+
+        document.forms["orderForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["orderForm"];
+            const id = form.elements["id"].value;
+            const pizza_name = form.elements["pizza_name"].value;
+            const client_name = form.elements["client_name"].value;
+            const date_order_end = form.elements["date_order_end"].value;
+            const sum = parseInt(form.elements["sum"].value, 10);
+            if (id === "0")
+                CreateOrder(pizza_name, client_name, date_order_end, sum);
+            else
+                EditOrder(id, pizza_name, client_name, date_order_end, sum);
+        });
+
+
+        GetOrders();
+    </script>
+</body>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        justify-content: center;
+        align-items: center;
+    }
+
+    form {
+        padding: 9px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        background: #fff;
+        width: 600px;
+        border-radius: 5px;
+    }
+
+    .form{
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    h2{
+        margin: 0;
+        padding: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center; 
+    }
+
+    .btn {
+        padding: 8px;
+        border: none;
+        background-color: #00dfafd2;
+        color: white;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+
+    .btn:hover {
+        background-color: #01a16c;
+    }
+</style>
+
+</html>
